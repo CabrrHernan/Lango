@@ -1,19 +1,17 @@
-import { useEffect, useState } from "react";
+import React from 'react';
+import Header from './components/Header';
+import ChatWindow from './components/ChatWindow';
+import Footer from './components/Footer';
 
 function App() {
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/hello")
-      .then(res => res.json())
-      .then(data => setMsg(data.message));
-  }, []);
-
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <h1 className="text-2xl font-bold">{msg}</h1>
+    <div className="flex flex-col h-screen">
+      <Header />
+      <ChatWindow />
+      <Footer />
     </div>
   );
 }
 
 export default App;
+
