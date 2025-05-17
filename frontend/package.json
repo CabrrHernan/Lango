@@ -44,8 +44,7 @@
   },
   "tailwindCSS.includeLanguages": {
     "javascript": "javascript",
-    "javascriptreact": "javascriptreact",
-    "typescriptreact": "typescript"
+    "javascriptreact": "javascriptreact"
   },
   "editor.quickSuggestions": {
     "strings": true
