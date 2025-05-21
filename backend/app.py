@@ -8,6 +8,43 @@ import re
 
 
 app = Flask(__name__)
+spell = SpellChecker()
+
+@app.route('/api/spellcheck', methods=['POST'])
+def spellcheck():
+    data = request.json
+    word = data.get('word', '').strip().lower()
+
+    if not word.isalpha():
+        return jsonify({
+            'original': word,
+            'corrected': None,
+            'valid': False
+        })
+
+    if word in spell:
+        return jsonify({
+            'original': word,
+            'corrected': word,
+            'valid': True
+        })
+
+    correction = spell.correction(word)
+    distance = spell.distance(word, correction)
+
+    if correction and distance <= 2:
+        return jsonify({
+            'original': word,
+            'corrected': correction,
+            'valid': True
+        })
+    else:
+        return jsonify({
+            'original': word,
+            'corrected': None,
+            'valid': False
+        })
+
 
 #Detects the languages in a msg
 def detect_languages(text):
@@ -23,7 +60,7 @@ def tokenize(text, lang):
     else:
         return text.split()
 
-
+#Used to make an MSG arrays for Audio 
 def chunk_by_language_ai(text):
     # Naive token-based split
     import re
@@ -96,10 +133,16 @@ def fetch_definitions(word, lang_code):
         print(f"API fetch error: {e}")
         return None
 
-#Used to make non-Alphabet words into Alphabet versions 
-def needs_romanization(word):
-    # True if word contains non-ASCII letters
-    return bool(re.search(r'[^a-zA-Z]', word))
+#Target Langague into User Native Language to help pronouce the words 
+def transliterate_to_user_script(word, source_lang, target_lang):
+    # Use a lookup or AI model here
+    # e.g., ja -> es: "白い" -> "shiroi"
+    # e.g., hi -> en: "सफ़ेद" -> "safed"
+    return None 
+
+#Shows the defintion of word assocated with the spcific msg
+def msg_word_definition(word, lang_code,msg):
+    return None 
 
 @app.route('/api/word/<lang_code>/<word>', methods=['GET'])
 def get_word_info(lang_code, word):
@@ -113,7 +156,7 @@ def get_word_info(lang_code, word):
             "lang_code": word_entry.lang_code,
             "native_definition": word_entry.native_definition,
             "english_definition": word_entry.english_definition,
-            "romanized": word_entry.romanized if needs_romanization(word_entry.word) else None,
+            "romanized": word_entry.romanized if transliterate_to_user_script(word_entry.word) else None,
             "seen_count": word_entry.seen_count
         })
 

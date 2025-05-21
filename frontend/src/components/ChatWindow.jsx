@@ -68,6 +68,7 @@ export default function ChatWindow() {
 });
 
 
+
   const messagesEndRef = useRef(null);
 
 
@@ -164,35 +165,39 @@ export default function ChatWindow() {
 
 
 
-   const sendMessage = async () => {
-  if (!input.trim()) return;
-  const userMsg = { from: 'user', text: input, langCode: 'en' };
-  setMessages(prev => [...prev, userMsg]);
-  setInput('');
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const userMsg = { from: 'user', text: input, langCode: 'en' };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
 
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: input }),
-    });
-    const data = await res.json();
-    const botReply = { from: 'bot', text: data.reply, langCode: data.langCode || 'en' };
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input }),
+      });
+      const data = await res.json();
+      let botReply = { from: 'bot', text: data.reply, langCode: data.langCode || 'en' };
 
-    const chunks = await fetchChunks(data.reply);
-    if (chunks && chunks.length > 1) {
-      botReply.langCode = 'multi';
-      setTokensByMsg(prev => ({
-        ...prev,
-        [messages.length + 1]: chunks,
-      }));
+      const chunks = await fetchChunks(data.reply);
+
+      setMessages(prev => {
+        const newIndex = prev.length; // The bot reply will be at this index
+        if (chunks && chunks.length > 1) {
+          botReply.langCode = 'multi';
+          setTokensByMsg((prevTokens) => ({
+            ...prevTokens,
+            [newIndex]: chunks,
+          }));
+        }
+        return [...prev, botReply];
+      });
+    } catch (err) {
+      console.error('Failed to fetch bot reply:', err);
     }
+  };
 
-    setMessages(prev => [...prev, botReply]);
-  } catch (err) {
-    console.error('Failed to fetch bot reply:', err);
-  }
-};
 
 
   const onWordClick = async (word) => {
@@ -292,7 +297,10 @@ export default function ChatWindow() {
         </button>
       </div>
 
+      
       <WordInfoPanel wordData={testWords[1]} onClose={() => setSelectedWord(null)} />
+
+
     </main>
   );
 }
