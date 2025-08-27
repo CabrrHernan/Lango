@@ -3,38 +3,60 @@ import WordInfoPanel from './WordInfoPanel';
 
 
 const testWords = [
-  {
-    word: 'こんにちは',
-    seen_count: 42,
-    lang_code: 'ja-JP',
-    native_definition: 'Hello (Japanese greeting)',
-    english_definition: 'Hello',
-    romanized: 'Konnichiwa',
-  },
-  {
-    word: '苹果',
-    seen_count: 17,
-    lang_code: 'zh-CN',
-    native_definition: '一种水果',
-    english_definition: 'Apple (fruit)',
-    romanized: 'Píngguǒ',
-  },
-  {
-    word: 'computer',
-    seen_count: 5,
-    lang_code: 'en-US',
-    native_definition: 'An electronic device for processing data',
-    english_definition: 'Computer',
-    romanized: '',  // No romanization needed for English
-  },
-  {
-    word: 'ありがとう',
-    seen_count: 30,
-    lang_code: 'ja-JP',
-    native_definition: '感谢',
-    english_definition: 'Thank you',
-    romanized: 'Arigatō',
+  {word: "学生",                  // native script
+  romanized: "gakusei",          // romanization
+  lang_code: "ja",                // Japanese
+  seen_count: 12,
+  click_count: 5,
+  used_count: 3,
+  rarity_level: 2,                // 1 = common, 5 = rare
+  part_of_speech: "noun",
+  tags: ["education", "school", "student"],
+  definitions: [
+    {
+      native: "学生",
+      romanized: "gakusei",
+      english: "student",
+      examples: [
+        {
+          native: "私は学生です。",
+          romanized: "Watashi wa gakusei desu.",
+          english: "I am a student."
+        },
+        {
+          native: "学生は図書館にいます。",
+          romanized: "Gakusei wa toshokan ni imasu.",
+          english: "The student is in the library."
+        }
+      ]
+    },
+    {
+      native: "生徒",
+      romanized: "seito",
+      english: "pupil / student",
+      examples: [
+        {
+          native: "その生徒は優秀です。",
+          romanized: "Sono seito wa yūshū desu.",
+          english: "That pupil is excellent."
+        }
+      ]
+    }
+  ],
+  media: [
+    {
+      type: "audio",
+      url: "https://example.com/audio/gakusei.mp3"
+    },
+    {
+      type: "image",
+      url: "https://example.com/images/student.png"
+    }
+  ]
+
   }
+  
+  
 ];
 
 
@@ -298,7 +320,7 @@ export default function ChatWindow() {
       </div>
 
       
-      <WordInfoPanel wordData={testWords[1]} onClose={() => setSelectedWord(null)} />
+      <WordInfoPanel wordData={testWords[0]} onClose={() => setSelectedWord(null)} />
 
 
     </main>

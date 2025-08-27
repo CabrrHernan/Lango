@@ -1,93 +1,113 @@
 from datetime import datetime
-from sqlalchemy.sql import func
+from . import db  # SQLAlchemy instance from __init__.py
 
-class Word(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    word = db.Column(db.String, nullable=False)
-    lang_code = db.Column(db.String, nullable=False)
-    definitions = db.Column(db.JSON, nullable=False)  # list of definition objects
-    user_script = db.Column(db.String, nullable=True)  # transliteration to user's script
+# Association table for Word <-> Tags
+word_tags = db.Table(
+    'word_tags',
+    db.Column('word_language_id', db.Integer, db.ForeignKey('word_language.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
 
-    seen_count = db.Column(db.Integer, default=0)       # how many times word appeared in text
-    click_count = db.Column(db.Integer, default=0)      # how many times user clicked for details
-    used_count = db.Column(db.Integer, default=0)       # how many times user actively used the word
+# Association table for Message <-> Languages
+message_languages = db.Table(
+    'message_languages',
+    db.Column('message_id', db.Integer, db.ForeignKey('message.id'), primary_key=True),
+    db.Column('lang_code', db.String, db.ForeignKey('language.code'), primary_key=True)
+)
 
-    last_seen = db.Column(db.DateTime, nullable=True)   # last time word was seen in user text
-    last_used = db.Column(db.DateTime, nullable=True)   # last time user used the word
-
-    confidence_score = db.Column(db.Float, default=0.0) # AI-driven confidence or familiarity score
-
-    def mark_seen(self):
-        self.seen_count += 1
-        self.last_seen = datetime.utcnow()
-
-    def mark_used(self):
-        self.used_count += 1
-        self.last_used = datetime.utcnow()
-
-    def mark_clicked(self):
-        self.click_count += 1
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, unique=True, nullable=False)
     name = db.Column(db.String)
     native_language = db.Column(db.String, nullable=False)
-    user_script = db.Column(db.String)  # used for transliteration
+    user_script = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    words = db.relationship('UserWord', back_populates='user')
+    messages = db.relationship('Message', backref='user')
+
+
+class Language(db.Model):
+    code = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    native_name = db.Column(db.String)
+    uses_spaces = db.Column(db.Boolean, default=True)
+    requires_tokenization = db.Column(db.Boolean, default=False)
+    supports_romanization = db.Column(db.Boolean, default=False)
+    default_script = db.Column(db.String)
+    direction = db.Column(db.String, default='ltr')
+
+    word_links = db.relationship('WordLanguage', back_populates='language')
+    messages = db.relationship('Message', secondary=message_languages, back_populates='languages')
+
+
+class Word(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    spelling = db.Column(db.String, nullable=False)  # actual text of the word
+
+
+class WordLanguage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    word_id = db.Column(db.Integer, db.ForeignKey('word.id'), nullable=False)
+    lang_code = db.Column(db.String, db.ForeignKey('language.code'), nullable=False)
+    
+    definitions = db.Column(db.JSON, nullable=False)
+    user_script = db.Column(db.String)
+
+    seen_count = db.Column(db.Integer, default=0)
+    click_count = db.Column(db.Integer, default=0)
+    used_count = db.Column(db.Integer, default=0)
+    
+    last_seen = db.Column(db.DateTime)
+    last_used = db.Column(db.DateTime)
+    confidence_score = db.Column(db.Float, default=0.0)
+
+    __table_args__ = (
+        db.UniqueConstraint('word_id', 'lang_code', name='unique_word_language'),
+    )
+
+    word = db.relationship('Word', back_populates='languages')
+    user_words = db.relationship('UserWord', back_populates='word_language')
+    tags = db.relationship('Tag', secondary='word_tags', back_populates='words')
+
 
 class UserWord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    word_id = db.Column(db.Integer, db.ForeignKey('word.id'), nullable=False)
+    word_language_id = db.Column(db.Integer, db.ForeignKey('word_language.id'), nullable=False)
 
-    # User-specific tracking info:
     seen_count = db.Column(db.Integer, default=0)
     click_count = db.Column(db.Integer, default=0)
     used_count = db.Column(db.Integer, default=0)
-
     last_seen = db.Column(db.DateTime)
     last_used = db.Column(db.DateTime)
-
-    confidence_score = db.Column(db.Float, default=0.0)  # AI estimate of user's knowledge/confidence
-    
-    # Additional flags:
-    is_known = db.Column(db.Boolean, default=False)   # e.g. user has marked this word as known
-
-    # Relationships
-    user = db.relationship('User', backref='known_words')
-    word = db.relationship('Word', backref='user_associations')
-
-
-
-
+    confidence_score = db.Column(db.Float, default=0.0)
+    is_known = db.Column(db.Boolean, default=False)
 
     __table_args__ = (
-        db.UniqueConstraint('user_id', 'word', name='unique_user_word'),
+        db.UniqueConstraint('user_id', 'word_language_id', name='unique_user_word'),
     )
 
-class Language(db.Model):
-    code = db.Column(db.String, primary_key=True)  # e.g. 'en', 'ja', 'zh'
-    name = db.Column(db.String, nullable=False)    # e.g. 'English', 'Japanese'
-    native_name = db.Column(db.String)             # e.g. '日本語', '中文'
-    
-    uses_spaces = db.Column(db.Boolean, default=True)       # true for English, false for Chinese, Japanese
-    requires_tokenization = db.Column(db.Boolean, default=False)  # true for languages like Chinese, Japanese
-    supports_romanization = db.Column(db.Boolean, default=False)  # true for Japanese, Korean, etc.
-    
-    default_script = db.Column(db.String)           # e.g. 'Latin', 'Cyrillic', 'Hiragana+Kanji'
-    direction = db.Column(db.String, default='ltr') # 'ltr' or 'rtl' (Arabic, Hebrew = rtl)
+    user = db.relationship('User', back_populates='words')
+    word_language = db.relationship('WordLanguage', back_populates='user_words')
+
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
     text = db.Column(db.Text, nullable=False)
-    lang_code = db.Column(db.String, db.ForeignKey('language.code'), nullable=False)  # e.g., 'en', 'ja'
-
-    word_analysis = db.Column(db.JSON)  # Optional: token breakdown, AI tagging
+    word_analysis = db.Column(db.JSON)  # optional AI breakdown
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    ai_summary = db.Column(db.Text)
+    ai_feedback = db.Column(db.Text)
 
-    ai_summary = db.Column(db.Text)     # Optional: AI-generated summary or definition usage
-    ai_feedback = db.Column(db.Text)    # Optional: grammatical or vocabulary corrections
-    
+    languages = db.relationship('Language', secondary=message_languages, back_populates='messages')
+
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.Text)
+
+    words = db.relationship('WordLanguage', secondary=word_tags, back_populates='tags')

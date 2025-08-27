@@ -1,28 +1,23 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from . import create_app
 
 db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    
-    # SQLite for dev, replace with PostgreSQL/MySQL for production
+
+    # Config
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lango.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Import routes after app is created
-    from .routes import bp
-    app.register_blueprint(bp)
+    # Register blueprints
+    from .routes import bp as main_bp
+    app.register_blueprint(main_bp)
 
     return app
-
-app = create_app()  # expose app for Flask CLI
-
-if __name__ == "__main__":
-    app.run(debug=True)

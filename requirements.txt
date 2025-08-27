@@ -1,0 +1,8 @@
+flask
+sqlalchemy
+flask-sqlalchemy
+flask-migrate
+python-dotenv
+requests
+pyspellchecker
+langdetect
